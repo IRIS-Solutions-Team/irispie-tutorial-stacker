@@ -39,6 +39,8 @@ t = ir.Stacker.from_simultaneous(
 vec = t.stacked_vector
 names = t.transition_variable_names
 periods = t.base_periods
+num_names = len(names)
+
 
 # Vector of transition variable names included in the stacker
 printn(names)
@@ -65,6 +67,8 @@ db.keep(selected_measurement_variables, )
 
 db["obs_rs"][start_period] = 5
 db["obs_y"][start_period+2>>ir.end>>3] = None
+db["shk_y_gap"] = ir.Series(periods=start_period+2>>start_period+3, values=-0.5, )
+db["std_shk_y_gap"] = ir.Series(periods=start_period+2>>start_period+3, values=5, )
 
 
 #
@@ -72,12 +76,16 @@ db["obs_y"][start_period+2>>ir.end>>3] = None
 # marginal distribution is described by its mean and covariance matrix.
 #
 
-marg_dist = t.calculate_marginal(db, stds_from_data=True, )
+marg_dist = t.calculate_marginal(
+    db,
+    stds_from_data=True,
+    shocks_from_data=False,
+)
 
 marg_mean, marg_mse = marg_dist
 
-sx = marg_mean.reshape((len(names), -1), order="F", )
-sx_std = ir.std_from_cov(marg_mse).reshape((len(names), -1), order="F", )
+sx = marg_mean.reshape((num_names, -1), order="F", )
+sx_std = ir.std_from_cov(marg_mse).reshape((num_names, -1), order="F", )
 
 
 #
@@ -92,6 +100,6 @@ cs = ir.CovarianceSimulator(cov=marg_mse, mean=marg_mean, )
 C = cs.factor
 
 ksi = cs.simulate(num_draws=100_000, )
-print(ksi.shape, )
+printn(ksi.shape, )
 
 
